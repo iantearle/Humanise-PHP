@@ -6,7 +6,7 @@
  * @license MIT License 2013
  */
 class Humanise {
-  const DAYFORMAT = 'd M, Y';
+	const DAYFORMAT = 'd M, Y';
 	const TIMEFORMAT = 'g:ia';
 	const DATEFORMAT = 'd/m/Y h:i:sa';
 
@@ -33,31 +33,56 @@ class Humanise {
 		return sprintf('%d%s', $value, $ord[$value % 10]);
 	}
 
+	function intcomma($number, $decimals=0, $decimal='.', $separator=',') {
+		return number_format($number, $decimals, $decimal, $separator);
+	}
+
 	/**
 	 * Formats the value like a 'human-readable' number (i.e. '13 K', '4.1 M', '102', etc).
 	 *
 	 * For example:
-	 * If value is 123456789, the output would be 117.7 M.
+	 * If value is 123456789, the output would be 123.5 Million.
 	 */
-	private function intword($number, $units, $kilo, $decimals, $decPoint, $thousandsSep, $suffixSep) {
-		$units = $units || array('', 'K', 'M', 'B', 'T');
-		$unit = count($units) - 1;
-		$kilo = $kilo || 1000;
-		$decimals = is_nan($decimals) ? 2 : abs($decimals);
-		$decPoint = $decPoint || '.';
-		$thousandsSep = $thousandsSep || ',';
-		$suffixSep = $suffixSep || '';
+	function intword($number, $units=array(' hundred', ' thousand', ' hundred thousand', ' million', ' billion', ' trillion'), $smallestAccepted=100, $decimals = 1) {
+		$number = intval($number);
+		if($number < $smallestAccepted) return $number;
 
-		for($i=0; $i < count($units); $i++) {
-			if($number < pow($kilo, $i+1)) {
-				$unit = i;
-				break;
-			}
+		if($number < 100) {
+			return Humanise::intcomma($number, $decimals);
 		}
-		$humanised = $number / pow($kilo, $unit);
 
-		$suffix = $units[$unit] ? $suffixSep + $units[$unit] : '';
-		return $this->numberFormat($humanised, $decimals, $decPoint, $thousandsSep) + $suffix;
+		if($number < 1000) {
+			$newValue = $number / 100;
+			return Humanise::intcomma($newValue, $decimals) . $units[0];
+		}
+
+		if($number < 100000) {
+			$newValue = $number / 1000.0;
+			return Humanise::intcomma($newValue, $decimals) . $units[1];
+		}
+
+		if($number < 1000000) {
+			$newValue = $number / 100000.0;
+			return Humanise::intcomma($newValue, $decimals) . $units[2];
+		}
+
+		if($number < 1000000000) {
+			$newValue = $number / 1000000.0;
+			return Humanise::intcomma($newValue, $decimals) . $units[3];
+		}
+
+		// senseless on a 32 bit system probably.
+		if($number < 1000000000000) {
+			$newValue = $number / 1000000000.0;
+			return Humanise::intcomma($newValue, $decimals) . $units[4];
+		}
+
+		if($number < 1000000000000000) {
+			$newValue = $number / 1000000000000.0;
+			return Humanise::intcomma($newValue, $decimals) . $units[5];
+		}
+
+		return $number;	// too big.
 	}
 
 	/**
@@ -72,8 +97,13 @@ class Humanise {
 	 * @return void
 	 */
 	public function naturalDay($timestamp = null, $format = null) {
-		if (is_null($timestamp)) $timestamp = time();
-		if (is_null($format)) $format = self::DAYFORMAT;
+		date_default_timezone_set('Europe/London');
+		if(is_null($timestamp)) {
+			$timestamp = time();
+		}
+		if(is_null($format)) {
+			$format = self::DAYFORMAT;
+		}
 		$oneday = 60*60*24;
 		$today = strtotime('today');
 		$tomorrow = $today + $oneday;
@@ -106,34 +136,43 @@ class Humanise {
 	 * @return void
 	 */
 	public function naturalTime($timestamp = null, $format = null) {
-		if (is_null($timestamp)) $timestamp = time();
-		if (is_null($format)) $format = self::TIMEFORMAT;
+		date_default_timezone_set('Europe/London');
+		if(is_null($timestamp)) {
+			$timestamp = time();
+		}
+		if(is_null($format)) {
+			$format = self::TIMEFORMAT;
+		}
 		$now = time();
 		$hour = 60*60;
-		if ($this->naturalDay($timestamp, $format) == 'today') {
+		if($this->naturalDay($timestamp, $format) == 'Today') {
 			$hourago = $now - $hour;
 			$hourfromnow = $now + $hour;
 			// if timestamp passed in was after an hour ago...
-			if ($timestamp > $hourago) {
+			if($timestamp > $hourago) {
 				// if timestamp passed in is in the future...
-				if ($timestamp > $now) {
+				if($timestamp > $now) {
 					// return how many minutes from now
 					$seconds = $timestamp - $now;
 					$minutes = (integer) round($seconds/60);
 					// if more than 60 minutes ago, report in hours
-					if ($minutes > 60) {
+					if($minutes > 60) {
 						$hours = round($minutes/60);
 						return "in about $hours hours";
 					}
 					// if it got rounded down to zero, or it was one, report one
-					if (!$minutes || $minutes === 1) return "just now";
+					if(!$minutes || $minutes === 1) {
+						return "just now";
+					}
 					return "in about $minutes minutes";
 				}
 				// return how many minutes from now
 				$seconds = $now - $timestamp;
 				$minutes = (integer) round($seconds/60);
 				// if it got rounded down to zero, or it was one, report one
-				if (!$minutes || $minutes === 1) return "just now";
+				if(!$minutes || $minutes === 1) {
+					return "just now";
+				}
 				return "about $minutes minutes ago";
 			}
 		}
@@ -171,19 +210,25 @@ class Humanise {
 	 * @param mixed $suffixSep
 	 * @return void
 	 */
-	public function fileSize($filesize, $kilo, $decimals, $decPoint, $thousandsSep, $suffixSep) {
-		$kilo = ($kilo === undefined) ? 1024 : $kilo;
+	public function fileSize($filesize, $kilo=null, $decimals=null, $decPoint=null, $thousandsSep=null, $suffixSep=null) {
+		$kilo = ($kilo === null) ? 1024 : $kilo;
 		if($filesize <= 0) {
 			return '0 bytes';
 		}
-		if($filesize < $kilo && $decimals === undefined) {
+		if($filesize < $kilo && $decimals === null) {
 			$decimals = 0;
 		}
-		if($suffixSep === undefined) {
+		if($suffixSep === null) {
+			$suffixSep = ' ';
+		}
+		if($thousandsSep === null) {
+			$thousandsSep = ',';
+		}
+		if($suffixSep === null) {
 			$suffixSep = ' ';
 		}
 
-		return $this->intword($filesize, array('bytes', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb'), $kilo, $decimals, $decPoint, $thousandsSep, $suffixSep);
+		return $this->intword($filesize, array('bytes', 'Kb', 'Mb', 'Gb', 'Tb', 'Pb'), 10, 1);
 	}
 
 	/**
@@ -197,10 +242,10 @@ class Humanise {
 	 * @param mixed $thousandsSep
 	 * @return void
 	 */
-	public function numberFormat($number, $decimals, $decPoint, $thousandsSep) {
-		$decimals = is_nan($decimals) ? 2 : abs($decimals);
-		$decPoint = ($decPoint === undefined) ? '.' : $decPoint;
-		$thousandsSep = ($thousandsSep === undefined) ? ',' : $thousandsSep;
+	private function numberFormat($number, $decimals=null, $decPoint=null, $thousandsSep=null) {
+		$decimals = ($decimals === null) ? 2 : abs($decimals);
+		$decPoint = ($decPoint === null) ? '.' : $decPoint;
+		$thousandsSep = ($thousandsSep === null) ? ',' : $thousandsSep;
 
 		$sign = $number < 0 ? '-' : '';
 		$number = abs(+$number || 0);
