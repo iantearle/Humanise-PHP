@@ -52,34 +52,34 @@ class Humanise {
 		}
 
 		if($number < 1000) {
-			$newValue = $number / 100;
-			return Humanise::intcomma($newValue, $decimals) . $units[0];
+			$value = $number / 100;
+			return Humanise::intcomma($value, $decimals) . $units[0];
 		}
 
 		if($number < 100000) {
-			$newValue = $number / 1000.0;
-			return Humanise::intcomma($newValue, $decimals) . $units[1];
+			$value = $number / 1000.0;
+			return Humanise::intcomma($value, $decimals) . $units[1];
 		}
 
 		if($number < 1000000) {
-			$newValue = $number / 100000.0;
-			return Humanise::intcomma($newValue, $decimals) . $units[2];
+			$value = $number / 100000.0;
+			return Humanise::intcomma($value, $decimals) . $units[2];
 		}
 
 		if($number < 1000000000) {
-			$newValue = $number / 1000000.0;
-			return Humanise::intcomma($newValue, $decimals) . $units[3];
+			$value = $number / 1000000.0;
+			return Humanise::intcomma($value, $decimals) . $units[3];
 		}
 
 		// senseless on a 32 bit system probably.
 		if($number < 1000000000000) {
-			$newValue = $number / 1000000000.0;
-			return Humanise::intcomma($newValue, $decimals) . $units[4];
+			$value = $number / 1000000000.0;
+			return Humanise::intcomma($value, $decimals) . $units[4];
 		}
 
 		if($number < 1000000000000000) {
-			$newValue = $number / 1000000000000.0;
-			return Humanise::intcomma($newValue, $decimals) . $units[5];
+			$value = $number / 1000000000000.0;
+			return Humanise::intcomma($value, $decimals) . $units[5];
 		}
 
 		return $number;	// too big.
